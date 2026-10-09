@@ -1,0 +1,24 @@
+# Secretos y datos locales (nunca al repositorio)
+.env
+*.db
+instance/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node (frontend/dist sí se versiona: permite correr la app sin instalar Node)
+frontend/node_modules/
+
+# n8n: flujo con los ids de credenciales de una instalación concreta
+n8n/.flujo_enlazado.json
+
+# Herramientas locales del equipo
+.claude/
+.impeccable/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

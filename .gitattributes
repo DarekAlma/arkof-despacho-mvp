@@ -1,0 +1,6 @@
+# Normaliza los saltos de línea entre Windows, macOS y Linux
+* text=auto
+*.png binary
+*.jpg binary
+*.woff binary
+*.woff2 binary

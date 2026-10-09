@@ -1,0 +1,504 @@
+{
+  "id": "arkofDespacho001",
+  "name": "ARKOF - Notificación y escalamiento de despacho",
+  "nodes": [
+    {
+      "id": "54e13d95-c908-44cb-b225-76a5de4c5747",
+      "name": "Evento ARKOF",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "2e996c51-789e-4f90-be64-74106897c779",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "arkof-despacho",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "99b2994e-c182-4c00-a95b-6699b491a4be",
+      "name": "Tipo de evento",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "961b4fcd-9514-414a-9e18-293630f3c225",
+                    "leftValue": "={{ $json.body.evento }}",
+                    "rightValue": "despacho",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "id": "3f2bf490-b99f-4064-8e79-9bdbeedba6e9",
+                    "leftValue": "={{ $json.body.evento }}",
+                    "rightValue": "escalamiento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "notificar_brigada"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "18108689-b2c3-4d7c-8ef9-92c5507bb5c5",
+                    "leftValue": "={{ $json.body.evento }}",
+                    "rightValue": "confirmado",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "brigada_confirmada"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "8b09390a-ba28-4d7d-b78c-308c76a57e4c",
+                    "leftValue": "={{ $json.body.evento }}",
+                    "rightValue": "alerta_coordinador",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "alerta_coordinador"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "1f22f0be-3464-47d2-bb75-01d3a841e524",
+                    "leftValue": "={{ $json.body.evento }}",
+                    "rightValue": "cierre",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "cierre"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d07f6ab3-1658-45a2-b3a2-6b736e1d446f",
+      "name": "Un ítem por brigadista",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        60
+      ],
+      "parameters": {
+        "jsCode": "// Convierte la lista de destinatarios en un ítem por brigadista y deja los textos listos para el correo y el SMS\nconst b = $input.first().json.body;\nconst TIPOS = { DERRAME_HIDROCARBURO: 'Derrame de hidrocarburo', SUSTANCIA_NOCIVA: 'Sustancia nociva', FUGA_GAS: 'Fuga de gas' };\nconst ROLES = { lider: 'líder', tecnico: 'técnico' };\nreturn (b.destinatarios || []).map(d => ({ json: {\n  ...d,\n  rol_texto: ROLES[d.rol] || d.rol,\n  tipo_texto: TIPOS[b.incidente.tipo] || b.incidente.tipo,\n  incidente: b.incidente, evento: b.evento, sla_minutos: b.sla_minutos,\n} }));"
+      }
+    },
+    {
+      "id": "991c5e53-3d57-4540-8d77-75bdc1941ac8",
+      "name": "Correo al brigadista",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        800,
+        -40
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURAR",
+          "name": "SMTP ARKOF (configurar)"
+        }
+      },
+      "parameters": {
+        "fromEmail": "={{ $env.ARKOF_CORREO_REMITENTE ? 'Despacho ARKOF <' + $env.ARKOF_CORREO_REMITENTE + '>' : 'Despacho ARKOF <despacho@arkof.example>' }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "={{ $json.evento === 'escalamiento' ? '[Reasignación] ' : '' }}ARKOF {{ $json.incidente.codigo }} · {{ $json.nombre }} ({{ $json.rol_texto }}): {{ $json.tipo_texto }} nivel {{ $json.incidente.nivel }} en {{ $json.incidente.municipio }}",
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:520px;color:#1f2c35\"><p style=\"background:#1F3B4D;color:#fff;padding:10px 14px;margin:0;font-weight:bold\">{{ $json.evento === 'escalamiento' ? 'Reasignación: ' : '' }}Convocatoria ARKOF {{ $json.incidente.codigo }}</p><div style=\"border:1px solid #1F3B4D;border-top:0;padding:14px;background:#FBEBCF\"><p>Hola {{ $json.nombre }}, el sistema lo asignó como <b>{{ $json.rol_texto }}</b>.</p><p>{{ $json.tipo_texto }} · <b>nivel {{ $json.incidente.nivel }}</b><br>Municipio: {{ $json.incidente.municipio }} ({{ $json.distancia_km }} km de su base)<br>Cliente: {{ $json.incidente.empresa }}</p><p>Tiene <b>{{ $json.sla_minutos }} minutos</b> para responder.</p><p><a href=\"{{ $json.url_confirmar }}\" style=\"display:inline-block;background:#3F5E48;color:#fff;padding:12px 18px;text-decoration:none;font-weight:bold\">Confirmo, voy en camino</a>&nbsp; <a href=\"{{ $json.url_rechazar }}\" style=\"color:#8A5A2B;font-weight:bold\">No estoy disponible</a></p><p style=\"font-size:13px;color:#56626b\">También puede responder en el portal del brigadista ({{ $json.url_portal }}) con su usuario <b>{{ $json.usuario }}</b>.</p></div></div>",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "d064da8c-d590-4e72-a823-c6ba169d0d18",
+      "name": "SMS al brigadista",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        800,
+        140
+      ],
+      "credentials": {
+        "twilioApi": {
+          "id": "CONFIGURAR",
+          "name": "Twilio ARKOF (configurar)"
+        }
+      },
+      "parameters": {
+        "from": "={{ $env.TWILIO_FROM_NUMBER || '+15005550006' }}",
+        "to": "={{ $json.telefono }}",
+        "message": "=ARKOF {{ $json.incidente.codigo }} Nivel {{ $json.incidente.nivel }} en {{ $json.incidente.municipio }}. Rol: {{ $json.rol_texto }}. Responda en {{ $json.sla_minutos }} min: {{ $json.url_confirmar }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "disabled": true
+    },
+    {
+      "id": "1bb24fb0-709d-4422-9bf7-5c506921230b",
+      "name": "Esperar plazo de confirmación",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        520,
+        320
+      ],
+      "webhookId": "fdb8f427-edc1-4ade-a4e3-fec1279cb4ee",
+      "parameters": {
+        "amount": "={{ $json.body.sla_minutos }}",
+        "unit": "minutes"
+      }
+    },
+    {
+      "id": "30e820a3-587b-43af-95af-fd37bfd8c60b",
+      "name": "Verificar plazo en la API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        320
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.body.url_verificar_sla }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-ARKOF-Token",
+              "value": "={{ $env.N8N_SHARED_SECRET || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"forzar\": false}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "0f13b788-8d23-4f49-8135-d84296cdedf9",
+      "name": "Aviso al cliente: brigada en camino",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        520,
+        500
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURAR",
+          "name": "SMTP ARKOF (configurar)"
+        }
+      },
+      "parameters": {
+        "fromEmail": "={{ $env.ARKOF_CORREO_REMITENTE ? 'Despacho ARKOF <' + $env.ARKOF_CORREO_REMITENTE + '>' : 'Despacho ARKOF <despacho@arkof.example>' }}",
+        "toEmail": "={{ $json.body.incidente.empresa_email }}",
+        "subject": "=ARKOF {{ $json.body.incidente.codigo }}: brigada confirmada y en camino",
+        "emailFormat": "html",
+        "html": "=<p>La brigada para el incidente <b>{{ $json.body.incidente.codigo }}</b> en {{ $json.body.incidente.municipio }} está confirmada.</p><p>Integrantes: {{ $json.body.destinatarios.map(d => d.nombre + ' (' + d.rol + ')').join(', ') }}</p>",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "93fc727f-8ebb-4809-ba39-1fc95aca8645",
+      "name": "Correo al coordinador",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        520,
+        680
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURAR",
+          "name": "SMTP ARKOF (configurar)"
+        }
+      },
+      "parameters": {
+        "fromEmail": "={{ $env.ARKOF_CORREO_REMITENTE ? 'Despacho ARKOF <' + $env.ARKOF_CORREO_REMITENTE + '>' : 'Despacho ARKOF <despacho@arkof.example>' }}",
+        "toEmail": "={{ $json.body.coordinador_email }}",
+        "subject": "=[ACCIÓN REQUERIDA] ARKOF {{ $json.body.incidente.codigo }}: {{ $json.body.motivo }}",
+        "emailFormat": "html",
+        "html": "=<p>El despacho automático del incidente <b>{{ $json.body.incidente.codigo }}</b> (nivel {{ $json.body.incidente.nivel }}, {{ $json.body.incidente.municipio }}) requiere decisión humana.</p><p>Motivo: {{ $json.body.motivo }}</p><p>Opciones: reasignación manual o activación del convenio de ayuda mutua.</p>",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "9d5982a8-1a05-4191-8ce0-93138e9e09d8",
+      "name": "SMS al coordinador",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        800,
+        680
+      ],
+      "credentials": {
+        "twilioApi": {
+          "id": "CONFIGURAR",
+          "name": "Twilio ARKOF (configurar)"
+        }
+      },
+      "parameters": {
+        "from": "={{ $env.TWILIO_FROM_NUMBER || '+15005550006' }}",
+        "to": "={{ $json.body.coordinador_telefono }}",
+        "message": "=ARKOF ACCION REQUERIDA {{ $json.body.incidente.codigo }}: {{ $json.body.motivo }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "disabled": true
+    },
+    {
+      "id": "3ebeb497-de1e-459e-b920-32657f8c4eb1",
+      "name": "Informe de cierre al cliente",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        520,
+        860
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURAR",
+          "name": "SMTP ARKOF (configurar)"
+        }
+      },
+      "parameters": {
+        "fromEmail": "={{ $env.ARKOF_CORREO_REMITENTE ? 'Despacho ARKOF <' + $env.ARKOF_CORREO_REMITENTE + '>' : 'Despacho ARKOF <despacho@arkof.example>' }}",
+        "toEmail": "={{ $json.body.incidente.empresa_email }}",
+        "subject": "=ARKOF {{ $json.body.informe.codigo }}: informe de trazabilidad del incidente",
+        "emailFormat": "html",
+        "html": "=<h3>Informe de trazabilidad {{ $json.body.informe.codigo }}</h3><p>Tipo: {{ $json.body.informe.tipo }}<br>Nivel: {{ $json.body.informe.nivel }}<br>Municipio: {{ $json.body.informe.municipio }}</p><p>Brigada: {{ $json.body.informe.brigada.join(', ') }}<br>Equipos: {{ $json.body.informe.equipos.join(', ') }}</p><h4>Línea de tiempo</h4><ul>{{ $json.body.informe.linea_de_tiempo.map(l => '<li>' + l + '</li>').join('') }}</ul>",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "411afdc8-bf1c-446a-8324-7bdb03cf1733",
+      "name": "Telegram al brigadista (demostración)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        -220
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "CONFIGURAR",
+          "name": "Telegram ARKOF (configurar)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.telegram_chat_id }}",
+        "text": "={{ $json.evento === 'escalamiento' ? 'REASIGNACIÓN · ' : '' }}ARKOF · Convocatoria {{ $json.incidente.codigo }}\n{{ $json.tipo_texto }} · nivel {{ $json.incidente.nivel }}\n{{ $json.incidente.municipio }} ({{ $json.distancia_km }} km de su base)\nBrigadista: {{ $json.nombre }} · rol {{ $json.rol_texto }}\nResponda en {{ $json.sla_minutos }} min.\n\nConfirmar o rechazar: {{ $json.url_confirmar }}\n\nCanal de demostración: en producción este aviso llega por SMS.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      }
+    },
+    {
+      "id": "58081657-61c7-4e8d-b689-faad40f388fb",
+      "name": "Telegram al coordinador (demostración)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        540
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "CONFIGURAR",
+          "name": "Telegram ARKOF (configurar)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Evento ARKOF').item.json.body.coordinador_telegram }}",
+        "text": "=ARKOF · ACCIÓN REQUERIDA {{ $('Evento ARKOF').item.json.body.incidente.codigo }}\n{{ $('Evento ARKOF').item.json.body.motivo }}\nNivel {{ $('Evento ARKOF').item.json.body.incidente.nivel }} en {{ $('Evento ARKOF').item.json.body.incidente.municipio }}. Decida: reasignación manual o activación del convenio de ayuda mutua.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Evento ARKOF": {
+      "main": [
+        [
+          {
+            "node": "Tipo de evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tipo de evento": {
+      "main": [
+        [
+          {
+            "node": "Un ítem por brigadista",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Esperar plazo de confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso al cliente: brigada en camino",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Correo al coordinador",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram al coordinador (demostración)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Informe de cierre al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Un ítem por brigadista": {
+      "main": [
+        [
+          {
+            "node": "Correo al brigadista",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SMS al brigadista",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram al brigadista (demostración)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar plazo de confirmación": {
+      "main": [
+        [
+          {
+            "node": "Verificar plazo en la API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correo al coordinador": {
+      "main": [
+        [
+          {
+            "node": "SMS al coordinador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota"
+  },
+  "pinData": {},
+  "tags": []
+}

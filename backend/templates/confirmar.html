@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1F3B4D">
+<title>{{ inc.codigo }} · Convocatoria ARKOF</title>
+<style>{{ fuentes | safe }}</style>
+<style>
+  /* Copia amarilla del formato de campo: misma paleta que la consola y el documento. Sin dependencias externas
+     para que cargue rápido con datos móviles limitados. */
+  :root { --navy:#1f3b4d; --verde:#3f5e48; --arena:#f4d9b0; --cafe:#5b4636; --alerta:#8a5a2b; --menta:#e4efe8;
+          --papel:#fbebcf; --filete:rgba(31,59,77,.62); --tenue:#5b4f45; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#d6dfd9; color:#1f2c35; font:16px/1.45 "Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .cab { background:var(--navy); color:#fff; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; }
+  .marca { font:700 22px/1 "Barlow","Arial Narrow",system-ui,sans-serif; letter-spacing:.06em; margin:0; }
+  .copia { font-size:13px; color:var(--arena); border:1px solid rgba(244,217,176,.5); padding:1px 8px; border-radius:2px; }
+  main { max-width:520px; margin:0 auto; padding:14px 12px 36px; }
+  .hoja { background:var(--papel); border:1px solid var(--filete); box-shadow:0 1px 2px rgba(31,59,77,.12),0 8px 24px -8px rgba(31,59,77,.28); }
+  .banda { margin:0; padding:9px 16px; color:#fff; background:var(--navy); font:600 16px "Barlow","Arial Narrow",system-ui,sans-serif; }
+  .banda.alerta { background:var(--alerta); } .banda.verde { background:var(--verde); }
+  .cuerpo { padding:14px 16px 18px; }
+  .folio { margin:0; font:700 20px "Barlow","Arial Narrow",system-ui,sans-serif; color:var(--alerta); letter-spacing:.02em; }
+  .folio span { font-weight:500; font-size:13px; margin-right:5px; }
+  h1 { margin:2px 0 0; font:700 23px/1.15 "Barlow","Arial Narrow",system-ui,sans-serif; color:var(--navy); }
+  .nivel { display:inline-grid; place-items:center; width:28px; height:28px; font:700 17px "Barlow",system-ui,sans-serif; border-radius:2px; vertical-align:middle; margin-left:6px; }
+  .n1 { border:1.5px solid var(--verde); color:var(--verde); } .n2 { border:2px solid var(--cafe); color:var(--cafe); background:var(--arena); }
+  .n3 { background:var(--alerta); color:#fff; border:2px solid var(--alerta); box-shadow:0 0 0 2px var(--papel),0 0 0 3.5px var(--alerta); }
+  dl { margin:14px 0; display:grid; gap:1px; background:var(--filete); border:1px solid var(--filete); }
+  dl div { background:var(--papel); padding:7px 10px; display:grid; grid-template-columns:92px 1fr; gap:8px; }
+  dt { font-size:13px; color:var(--cafe); } dd { margin:0; font-weight:600; overflow-wrap:anywhere; }
+  .plazo { display:flex; gap:12px; align-items:center; padding:12px 14px; border:2px solid var(--cafe); background:#fff; color:var(--cafe); }
+  .plazo.urge { border-color:var(--alerta); color:var(--alerta); }
+  .plazo b { display:block; font:700 34px/1 "Barlow","Arial Narrow",system-ui,sans-serif; font-variant-numeric:tabular-nums; }
+  .plazo p { margin:0; }
+  form { display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+  button, .boton { display:flex; align-items:center; justify-content:center; gap:8px; min-height:58px; width:100%; border-radius:3px;
+    font:600 18px "Barlow","Arial Narrow",system-ui,sans-serif; cursor:pointer; text-decoration:none; }
+  .si { background:var(--verde); color:#fff; border:1px solid var(--verde); }
+  .no { background:#fff; color:var(--alerta); border:2px solid var(--alerta); }
+  .sec { background:#fff; color:var(--navy); border:1px solid var(--filete); min-height:48px; font-size:16px; margin-top:12px; }
+  button:focus-visible, a:focus-visible { outline:2px solid var(--navy); outline-offset:2px; }
+  .sello { display:inline-block; font:700 20px "Barlow","Arial Narrow",system-ui,sans-serif; padding:4px 14px; border:3px double currentColor;
+    border-radius:2px; transform:rotate(-2.5deg); background:rgba(255,255,255,.4); margin:4px 0 12px; animation:sellar 260ms cubic-bezier(.16,1,.3,1) both; }
+  @keyframes sellar { from { transform:rotate(-6deg) scale(1.35); opacity:0; } to { transform:rotate(-2.5deg) scale(1); opacity:1; } }
+  .s-confirmado { color:var(--verde); } .s-rechazado, .s-vencido { color:var(--alerta); } .s-no_requerido { color:var(--tenue); }
+  .aviso { margin:0 0 12px; padding:10px 12px; border:1px solid var(--filete); background:#fff; }
+  .aviso.ok { border-color:var(--verde); background:var(--menta); }
+  .pie { margin:14px 0 0; font-size:13px; color:var(--tenue); }
+  .pie a { color:var(--navy); font-weight:600; }
+  svg { flex:none; }
+  @media (prefers-reduced-motion: reduce) { .sello { animation:none; } }
+</style>
+</head>
+<body>
+<header class="cab"><p class="marca">ARKOF</p><span class="copia">Copia del brigadista</span></header>
+<main>
+  <article class="hoja">
+    {% set rol = {'lider': 'líder', 'tecnico': 'técnico'}[a.rol_en_brigada] %}
+    {% set tipo = {'DERRAME_HIDROCARBURO': 'Derrame de hidrocarburo', 'SUSTANCIA_NOCIVA': 'Sustancia nociva', 'FUGA_GAS': 'Fuga de gas'}.get(inc.tipo, inc.tipo) %}
+    {% if a.estado == 'pendiente' %}
+      <h2 class="banda alerta">Convocatoria: responda ahora</h2>
+    {% elif a.estado == 'confirmado' %}
+      <h2 class="banda verde">Usted confirmó: va en camino</h2>
+    {% else %}
+      <h2 class="banda">Convocatoria cerrada para usted</h2>
+    {% endif %}
+    <div class="cuerpo">
+      {% if resultado == 'ok' %}<p class="aviso ok" role="status">Respuesta registrada. El coordinador ya la ve en la consola.</p>{% endif %}
+      {% if resultado == 'ya' %}<p class="aviso" role="status">Esta convocatoria ya no admitía respuesta; abajo está su estado actual.</p>{% endif %}
+
+      <p class="folio"><span>N.º</span>{{ inc.codigo }}</p>
+      <h1>{{ tipo }} <span class="nivel n{{ inc.nivel }}" title="Nivel {{ inc.nivel }}">{{ inc.nivel }}</span></h1>
+
+      <dl>
+        <div><dt>Brigadista</dt><dd>{{ a.brigadista.nombre }}</dd></div>
+        <div><dt>Su rol</dt><dd>{{ rol }}</dd></div>
+        <div><dt>Lugar</dt><dd>{{ inc.municipio }} · {{ '%.0f'|format(a.distancia_km or 0) }} km de su base</dd></div>
+        <div><dt>Cliente</dt><dd>{{ inc.empresa.nombre if inc.empresa else '—' }}</dd></div>
+        {% if inc.descripcion %}<div><dt>Reporte</dt><dd>{{ inc.descripcion }}</dd></div>{% endif %}
+      </dl>
+
+      {% if a.estado == 'pendiente' %}
+        {% set seg = ((vence_en - ahora).total_seconds() if vence_en else 0) | int %}
+        <div class="plazo{% if seg <= 60 %} urge{% endif %}" role="timer">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+          {% if seg > 0 %}
+            <p><b id="reloj" data-seg="{{ seg }}">{{ seg // 60 }}:{{ '%02d' % (seg % 60) }}</b>para confirmar (plazo de {{ '%g'|format(sla) }} min)</p>
+          {% else %}
+            <p><b>El plazo venció</b>Si aún puede ir, confirme ya: el sistema está buscando reemplazo.</p>
+          {% endif %}
+        </div>
+        <form method="post">
+          <button class="si" name="respuesta" value="si">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>
+            Confirmo, voy en camino</button>
+          <button class="no" name="respuesta" value="no">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            No estoy disponible</button>
+        </form>
+      {% else %}
+        <span class="sello s-{{ a.estado }}">{{ {'confirmado': 'Confirmado', 'rechazado': 'Rechazado', 'vencido': 'Plazo vencido', 'no_requerido': 'No requerido'}.get(a.estado, a.estado) }}</span>
+        {% if a.estado == 'confirmado' %}
+          <p>Confirmó a las {{ a.respondido_en.strftime('%H:%M') if a.respondido_en else '—' }} (UTC). Diríjase al sitio con su EPP; el coordinador registrará los hitos de campo.</p>
+          <a class="boton sec" href="https://www.google.com/maps?q={{ inc.lat }},{{ inc.lon }}" target="_blank" rel="noopener noreferrer">Abrir la ubicación en el mapa</a>
+        {% elif a.estado == 'rechazado' %}
+          <p>Registramos que no está disponible. Gracias por avisar a tiempo: el sistema ya convocó a un reemplazo.</p>
+        {% elif a.estado == 'vencido' %}
+          <p>El plazo para confirmar venció y su cupo se reasignó a otro brigadista. No necesita presentarse; si quiere apoyar, comuníquese con el coordinador.</p>
+        {% elif a.estado == 'no_requerido' %}
+          <p>La brigada se completó con otros compañeros antes de su respuesta. No necesita presentarse. Gracias por estar disponible.</p>
+        {% endif %}
+        {% if inc.estado == 'cerrado' %}<p class="pie">El incidente ya fue cerrado por el coordinador.</p>{% endif %}
+      {% endif %}
+
+      <p class="pie">¿Tiene cuenta? <a href="/">Ingrese al portal del brigadista</a> para ver todas sus convocatorias.</p>
+    </div>
+  </article>
+</main>
+{% if a.estado == 'pendiente' %}
+<script>
+  // Cuenta regresiva local; al llegar a cero recarga para mostrar el aviso de plazo vencido.
+  (function () {
+    var el = document.getElementById("reloj"); if (!el) return;
+    var fin = Date.now() + Number(el.dataset.seg) * 1000;
+    var t = setInterval(function () {
+      var s = Math.max(0, Math.ceil((fin - Date.now()) / 1000));
+      el.textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+      if (s <= 60) el.parentNode.parentNode.classList.add("urge");
+      if (s === 0) { clearInterval(t); location.reload(); }
+    }, 1000);
+  })();
+</script>
+{% endif %}
+</body>
+</html>
