@@ -1,7 +1,9 @@
 # MVP — Despacho automatizado de brigadas ante contingencias ambientales (ARKOF S.A.S.)
 
 Proyecto académico del curso **Gerencia de Operaciones de TI** (Universidad de La Sabana, 2026-2).
-Equipo: Darek Aljuri Martínez, Valentina Ruiz Torres, Santiago Soler Prado. Docente: Mateo Barón Rojas.
+Equipo: Darek Aljuri Martínez, Valentina Ruiz Torres, Santiago Soler Prado.
+
+Link Video demostrativo: https://www.youtube.com/watch?v=wSBJssc8Row
 
 > Todos los datos (brigadistas, empresas, teléfonos, correos) son **ficticios**. Los umbrales de las
 > reglas de negocio son **supuestos** del equipo, pendientes de validación con ARKOF (`backend/reglas.py`).
