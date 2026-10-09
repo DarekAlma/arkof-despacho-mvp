@@ -22,3 +22,7 @@ n8n/.flujo_enlazado.json
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+CLAUDE.md
+DESIGN.md
+PRODUCT.md
