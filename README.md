@@ -8,8 +8,10 @@ Link Video demostrativo: https://www.youtube.com/watch?v=wSBJssc8Row
 > Todos los datos (brigadistas, empresas, teléfonos, correos) son **ficticios**. Los umbrales de las
 > reglas de negocio son **supuestos** del equipo, pendientes de validación con ARKOF (`backend/reglas.py`).
 
-Este repositorio es el entregable del **capítulo 8 (MVP funcional)** del documento del proyecto: código fuente,
-flujo de automatización de n8n, configuración, pruebas automatizadas y simulación AS-IS vs. TO-BE.
+Este repositorio es el entregable de los **capítulos 8 (MVP funcional) y 13 (documentación y entrega final)** del
+documento del proyecto: código fuente, flujo de automatización de n8n, configuración, pruebas automatizadas y
+simulación AS-IS vs. TO-BE. El manual para el coordinador y el brigadista está en
+[`docs/manual_usuario.pdf`](docs/manual_usuario.pdf); la documentación técnica es este archivo y la sección 13.2 del informe.
 
 ## Inicio rápido (modo simulación, sin n8n)
 
@@ -83,19 +85,36 @@ o SMS (decisión de diseño del capítulo 7.3).
 | `frontend/src/` | React 18 + Vite: ingreso por rol, consola del coordinador (`Consola.jsx`) y portal del brigadista (`Portal.jsx`) |
 | `frontend/dist/` | Frontend compilado (lo sirve Flask) |
 | `n8n/arkof_despacho_workflow.json` | Flujo de n8n importable (13 nodos) |
-| `n8n/iniciar_n8n.mjs`, `n8n/enlazar_credenciales.py` | Arrancar, importar y activar n8n local; enlazar credenciales a los nodos |
+| `docker-compose.yml` | n8n local en un contenedor de Docker (imagen `n8nio/n8n` 1.123.83) |
+| `n8n/iniciar_n8n.mjs`, `n8n/enlazar_credenciales.py` | Arrancar, importar y activar n8n local sin Docker; enlazar credenciales a los nodos |
 | `docs/` | Diagramas del documento, capturas del MVP (`docs/capturas`) y resultados de la simulación |
-| `PRODUCT.md`, `DESIGN.md` | Contexto de producto y sistema visual de la interfaz |
 
 ## 3. Ejecución completa (con n8n, correo y Telegram)
 
-Requisitos adicionales: Node.js 20+ (n8n se ejecuta con `npx`, sin instalación global).
+n8n se ejecuta en un contenedor de Docker (así se corrió en el MVP) o, sin Docker, con Node.js 20+. Los comandos
+van desde la raíz del repositorio. Antes de iniciar n8n defina en `backend/.env` las variables del paso 3.
+
+**Con Docker** (Docker Desktop o Docker Engine con Compose; usa `docker-compose.yml`):
+
+```bash
+docker compose --env-file backend/.env run --rm n8n import:workflow --input=/flujo/arkof_despacho_workflow.json
+docker compose --env-file backend/.env run --rm n8n update:workflow --id=arkofDespacho001 --active=true
+docker compose --env-file backend/.env up -d      # n8n en http://localhost:5678
+docker compose --env-file backend/.env down       # lo detiene; los datos se conservan
+```
+
+Con n8n en un contenedor, `PUBLIC_BASE_URL` debe ser una dirección que el contenedor alcance: la URL de ngrok o
+`http://host.docker.internal:5000`. Con `http://localhost:5000`, n8n no puede llamar a `verificar-sla`.
+
+**Sin Docker** (n8n con `npx`, sin instalación global):
 
 ```bash
 node n8n/iniciar_n8n.mjs importar   # importa o actualiza el flujo (id fijo, no se duplica)
 node n8n/iniciar_n8n.mjs activar    # lo deja activo
 node n8n/iniciar_n8n.mjs            # inicia n8n en http://localhost:5678
 ```
+
+Las dos formas guardan los datos de n8n en `~/.arkof-n8n`, fuera del repositorio.
 
 1. En `http://localhost:5678/setup` cree la cuenta de n8n (solo la primera vez).
 2. En n8n, *Credentials → Create credential*: **SMTP** (Gmail: `smtp.gmail.com`, puerto 465, SSL, contraseña de
@@ -105,7 +124,8 @@ node n8n/iniciar_n8n.mjs            # inicia n8n en http://localhost:5678
    y, opcionalmente, `DEMO_EMAIL` para recibir todos los avisos en un solo correo.
 4. Con n8n detenido, enlace las credenciales a los nodos y reimporte:
    `python n8n/enlazar_credenciales.py`, luego `node n8n/iniciar_n8n.mjs importar n8n/.flujo_enlazado.json`
-   y `node n8n/iniciar_n8n.mjs activar`. Inicie n8n y la app.
+   y `node n8n/iniciar_n8n.mjs activar`. Con Docker, repita los comandos de arriba importando
+   `/flujo/.flujo_enlazado.json`. Inicie n8n y la app.
 
 **Acceso desde el celular u otro equipo.** Exponga la app con un túnel (`ngrok http 5000`, requiere cuenta
 gratuita de ngrok) y copie la URL `https://…` en `PUBLIC_BASE_URL`; así los enlaces del correo y de Telegram

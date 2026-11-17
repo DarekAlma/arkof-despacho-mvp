@@ -1,0 +1,34 @@
+# n8n local en un contenedor de Docker (capa de automatización del MVP).
+# La aplicación Flask sigue ejecutándose en el equipo (python backend/app.py); aquí solo corre n8n.
+#
+# Uso, desde la raíz del repositorio (lee las variables de backend/.env):
+#   docker compose --env-file backend/.env run --rm n8n import:workflow --input=/flujo/arkof_despacho_workflow.json
+#   docker compose --env-file backend/.env run --rm n8n update:workflow --id=arkofDespacho001 --active=true
+#   docker compose --env-file backend/.env up -d          # http://localhost:5678
+#   docker compose --env-file backend/.env down           # detiene n8n (los datos se conservan)
+#
+# Con n8n en un contenedor, PUBLIC_BASE_URL (backend/.env) debe ser una dirección que el contenedor alcance:
+# la URL de ngrok o http://host.docker.internal:5000. Con http://localhost:5000 n8n no puede llamar a verificar-sla.
+#
+# Los datos de n8n (credenciales cifradas, historial) quedan en ~/.arkof-n8n/.n8n, fuera del repositorio:
+# la misma carpeta que usa n8n/iniciar_n8n.mjs, para que n8n/enlazar_credenciales.py funcione igual.
+services:
+  n8n:
+    image: n8nio/n8n:1.123.83
+    container_name: arkof-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"   # los nodos leen $env.N8N_SHARED_SECRET, etc.
+      GENERIC_TIMEZONE: America/Bogota
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_SHARED_SECRET: ${N8N_SHARED_SECRET:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      ARKOF_CORREO_REMITENTE: ${ARKOF_CORREO_REMITENTE:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # en Linux, para alcanzar la app del equipo
+    volumes:
+      - ${ARKOF_N8N_DATA:-~/.arkof-n8n/.n8n}:/home/node/.n8n
+      - ./n8n:/flujo:ro

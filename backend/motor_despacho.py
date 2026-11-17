@@ -193,7 +193,7 @@ def _notificar_asignaciones(inc, asignaciones, evento):
     if inc.estado == "reportado":
         inc.estado = "notificado"
     resultado = notificador.enviar(evento, notificador.payload(inc, asignaciones))
-    log(inc, "NOTIFICACION", f"{plural(len(asignaciones), 'brigadista notificado', 'brigadistas notificados')} por correo + SMS vía {resultado}.", "n8n")
+    log(inc, "NOTIFICACION", f"{plural(len(asignaciones), 'brigadista notificado', 'brigadistas notificados')} por los canales activos (correo, Telegram o SMS) vía {resultado}.", "n8n")
 
 
 def registrar_respuesta(token, acepta, canal="enlace del SMS/correo"):
